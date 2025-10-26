@@ -1,75 +1,57 @@
+library(gt)
+library(gtExtras)
 pbp <- load_pbp(2024:2025)
 
 
-success_rate_2025 <- pbp |>
-  filter(season == 2025 & season_type == 'REG') |>
+def_epa <- pbp |>
+  filter(season_type == 'REG') |>
+  filter(vegas_wp > 0.02) |>
   filter(down %in% 1:4 & !is.na(epa) & (pass == 1 | rush == 1)) |>
-  group_by(team = defteam) |>
+  group_by(season, team = defteam) |>
   summarize(
-    success_rate = mean(success)
+    epa = mean(epa)
   ) |>
-  arrange(success_rate) |>
   ungroup() |>
-  mutate(rank = row_number())
-
-
-
-success_rate_2024 <- pbp |>
-  filter(season == 2024 & season_type == 'REG') |>
-  filter(down %in% 1:4 & !is.na(epa) & (pass == 1 | rush == 1)) |>
-  group_by(team = defteam) |>
-  summarize(
-    success_rate...2 = mean(success)
+  group_by(season) |>
+  arrange(epa) |>
+  mutate(rank = row_number()) |>
+  ungroup() |>
+  pivot_wider(
+    names_from = season,
+    values_from = c(epa, rank)
   ) |>
-  arrange(success_rate...2) |>
-  ungroup() |>
-  mutate(rank...2 = row_number())
+  mutate(change = rank_2024 - rank_2025) |>
+  select(-rank_2024, -epa_2024) |>
+  rename(rank = rank_2025, epa = epa_2025) |>
+  arrange(rank)
 
+def_epa
 
-success_rate <- full_join(success_rate_2025, success_rate_2024)
-
-
-change_success_rate <- success_rate |>
-  mutate(change = rank...2 - rank) |>
-  select(-success_rate...2, -rank...2)
-
-
-left <- change_success_rate |> filter(rank <= 16)
-right <- change_success_rate |> filter(rank > 16)
+left <- def_epa |> filter(rank <= 16)
+right <- def_epa |> filter(rank > 16)
 
 
 left <- left |> rename_with(~ paste0(.x, "_L"))
 right <- right |> rename_with(~ paste0(.x, "_R"))
-
-sr_range <- range(
-  c(success_rate_2025$success_rate)
-)
-
-sr_range
-
 
 data <- bind_cols(left, right)
 
 plot <- data |>
   gt() |>
   nflplotR::gt_nfl_logos(columns = starts_with('team')) |>
-  fmt_number(columns = starts_with("success_rate"), decimals = 2) |>
+  fmt_number(columns = starts_with("epa"), decimals = 3) |>
   cols_move_to_start(rank_L) |>
   cols_move(columns = c(rank_R), after=change_L) |>
   cols_label(
-    rank_L = 'Rank',
-    team_L = 'Team',
-    success_rate_L ='SR',
-    change_L = 'Change',
-    rank_R = 'Rank',
-    team_R = 'Team',
-    success_rate_R = 'SR',
-    change_R = 'Change'
+    starts_with('rank') ~ "Rank",
+    starts_with("team") ~ "Team",
+    starts_with("epa") ~ "EPA",
+    starts_with("Change") ~ "Change"
   ) |>
   gtExtras::gt_add_divider(columns = change_L, style = 'dashed') |>
   tab_header(
-    title = '2025 Defensive Success Rate Allowed',
-    subtitle = 'SR is the success rate allowed and the change is the change is rank from last season'
+    title = '2025 Defensive EPA through Week 8',
+    subtitle = 'Measured in EPA/play (excluding <2% win prob) and the change is the change is rank from last season'
   ) |>
   tab_source_note(
     "Data: @nflfastR | Chart: Joshios"
@@ -86,10 +68,10 @@ plot <- data |>
     }
   ) |>
   data_color(
-    columns = starts_with('success_rate'),
+    columns = starts_with('epa'),
     method = "numeric",
     palette = "RdYlGn",
-    domain = sr_range,
+    domain = range(def_epa$epa),
     reverse = TRUE
   ) |>
   tab_style(
@@ -100,5 +82,11 @@ plot <- data |>
   ) |>
   cols_width(
     everything() ~ px(55)
+  ) |>
+  tab_options(
+    data_row.padding = gt::px(2)  # smaller = tighter rows
   )
 
+plot
+
+plot |> gtsave('sr.png')

@@ -1,8 +1,8 @@
-pbp <- load_pbp(2025)
+pbp <- load_pbp(2024:2025)
 
-points <- load_schedules(2025) |>
+points <- load_schedules(2024:2025) |>
   nflreadr::clean_homeaway() |>
-  group_by(team) |>
+  group_by(team, season) |>
   summarize(
     points_allowed = sum(opponent_score, na.rm = TRUE)
   ) |>
@@ -10,24 +10,29 @@ points <- load_schedules(2025) |>
 
 data <- pbp |>
   filter(down %in% 1:4) |>
-  group_by(game_id, drive, team = defteam) |>
+  group_by(season, game_id, drive, team = defteam) |>
   summarize(
     score = any(series_result == 'Touchdown' | series_result == 'Field goal'),
     kneel = any(series_result == 'QB kneel'),
     zero_play = any(drive_play_count == 0)
   ) |>
   ungroup() |>
-  group_by(team) |>
+  group_by(season, team) |>
   summarize(
     drives = n() - sum(kneel) - sum(zero_play),
     scores = sum(score),
     stop_rate = mean(!score),
   ) |>
   ungroup() |>
-  left_join(points, by = 'team') |>
+  left_join(points, by = c('team', 'season')) |>
   arrange(-stop_rate) |>
+  group_by(season) |>
   mutate(pts_per_drive = points_allowed / drives, rank = row_number()) |>
   select(-drives, -scores, -points_allowed)
+
+data |> ungroup() |> pivot_wider(names_from = season, values_from = c(stop_rate, pts_per_drive, rank)) |>
+  mutate(diff = rank_2024-rank_2025, combined = rank_2024+rank_2025) |>
+  arrange(-combined)
 
 stop_rate_range <- range(
   c(data$stop_rate),
@@ -89,7 +94,9 @@ table_data |>
   gtExtras::gt_add_divider(columns = c(pts_per_drive_L), style = 'dashed') |>
   tab_source_note("Data: @nflfastR | Chart: Joshios") |>
   tab_header(
-    title = 'NFL Stop Rate Through Week 6',
+    title = '2025 NFL Stop Rate',
     subtitle = 'Stop rate is the % of drives that result in no score, excluding QB kneels'
+  ) |>
+  tab_options(
+    data_row.padding = px(2)
   )
-

@@ -77,10 +77,11 @@ ggplot2::ggplot(combined, aes(x = off_three_and_out_rate, y = def_three_and_out_
     y = "Defensive three and out rate",
     caption = "Data: @nflfastR | Joshios",
     subtitle = "How often a team avoids or forces three-and-outs (a drive with no first down) on both sides of the ball",
-    title = "2025 Team Three-and-Out Performance (Offense vs. Defense)"
+    title = "2025 Team Three-and-Out Performance (Offense vs. Defense) through Week 8"
   ) +
   ggplot2::theme_minimal() +
-  ggplot2::scale_x_reverse() +
+  ggplot2::scale_x_reverse(labels = scales::percent) +
+  ggplot2::scale_y_continuous(labels = scales::percent) +
   # quadrant text labels
   annotate("text", x = max(combined$off_three_and_out_rate, na.rm=TRUE) * 0.9,
            y = max(combined$def_three_and_out_rate, na.rm=TRUE) * 0.9,
@@ -99,4 +100,3 @@ ggplot2::ggplot(combined, aes(x = off_three_and_out_rate, y = def_three_and_out_
     plot.title.position = "plot",
     plot.background = ggplot2::element_rect(fill = "#F0F0F0")
   )
-

@@ -15,7 +15,7 @@ qb_rank <- pbp |>
   group_by(week) |>
   arrange(-qb_epa) |>
   mutate(qb_rank = row_number()) |>
-  filter(week == 7)
+  filter(week == 9)
 
 def_rank <- pbp |>
   filter(down %in% 1:4 & !is.na(epa) & (pass == 1 | rush == 1)) |>
@@ -28,7 +28,7 @@ def_rank <- pbp |>
   group_by(week) |>
   arrange(def_epa) |>
   mutate(def_rank = row_number()) |>
-  filter(week == 7)
+  filter(week == 9)
 
 
 def_rank
@@ -40,8 +40,8 @@ combined <- full_join(def_rank, qb_rank, by = c('team', 'week', 'game_id')) |>
   select(-def_epa, -qb_epa, -game_id, -week)
 
 combined
-left <- combined |> head(n = 15) |> rename_with(~ paste0(.x, "_L"))
-right <- combined |> tail(n = 15) |> rename_with(~ paste0(.x, "_R"))
+left <- combined |> head(n = 13) |> rename_with(~ paste0(.x, "_L"))
+right <- combined |> tail(n = 13) |> rename_with(~ paste0(.x, "_R"))
 
 
 bind_cols(left, right)
@@ -67,7 +67,7 @@ bind_cols(left, right) |> gt() |>
     everything() ~ "auto"
   ) |>
   tab_header(
-    title = "NFL Week 7 QB Betrayal Index",
+    title = "NFL Week 79QB Betrayal Index",
     subtitle = 'Rank is based on EPA/play on designed runs & passes, excluding garbage time (<5% win)'
   ) |>
   tab_options(
@@ -75,3 +75,4 @@ bind_cols(left, right) |> gt() |>
   ) |>
   tab_source_note("Data: @nflfastR | By: Joshios") |>
   gtsave('betrayal.png')
+

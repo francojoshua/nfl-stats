@@ -1,12 +1,5 @@
 player_stats <- load_player_stats(summary_level = 'reg')
 
-
-player_stats |>
-  filter(player_display_name == 'Jaxon Smith-Njigba')
-
-
-glimpse(player_stats)
-
 supporting_cast_epa <- player_stats |>
   group_by(team = recent_team) |>
   mutate(leader_id = player_id[which.max(target_share)]) |>
@@ -20,11 +13,10 @@ supporting_cast_epa <- player_stats |>
 supporting_cast_range <- range(supporting_cast_epa$supporting_cast_epa)
 
 target_share_leaders <- player_stats |>
-  select(player_id, team = recent_team, player_display_name, target_share) |>
+  select(player_id, team = recent_team, player_display_name, target_share, epa = receiving_epa) |>
   arrange(-target_share) |>
   mutate(rank = row_number()) |>
   filter(rank <= 10)
-
 pbp <- load_pbp(2025)
 
 
@@ -33,30 +25,8 @@ important_data_all <- player_stats |> filter(position %in% c('WR', 'RB', 'TE')) 
   select(target_share, receiving_epa)
 target_share_range <- range(important_data_all$target_share)
 receiving_epa_range <- range(important_data_all$receiving_epa)
-fantasy_points_range <- range(important_data_all$fantasy_points)
 
-epas <- pbp |>
-  filter(down %in% 1:4 & !is.na(receiver_player_id) & pass == 1) |>
-  group_by(player_id = receiver_player_id) |>
-  summarize(
-    epa = sum(epa),
-    team = last(posteam),
-  ) |>
-  arrange(-epa)
-
-  
-
-excluding_epas <- epas |>
-  filter(!(player_id %in% target_share_leaders$player_id)) |>
-  filter(team %in% target_share_leaders$team) |>
-  group_by(team) |>
-  summarize(
-    team_epa = sum(epa)
-  )
-  
-
-target_share_leaders |>
-  left_join(epas, by = c('player_id', 'team')) |>
+plot <- target_share_leaders |>
   left_join(supporting_cast_epa, by = c('team')) |>
   gt() |>
   nflplotR::gt_nfl_headshots(columns = player_id) |>
@@ -106,3 +76,5 @@ target_share_leaders |>
     style = cell_text(weight = 'bold')
   )
 
+
+gtsave(plot, 'target_share.png')

@@ -12,7 +12,7 @@ drive_ratios <- pbp |>
     result = last(series_result),
     plays = n(),
     yards = sum(yards_gained, na.rm = TRUE),
-    penalties = sum(penalty, na.rm = TRUE),
+    penalties = sum(penalty & penalty_team == team, na.rm = TRUE),
     touchdown = any(touchdown == 1 & td_team == team, na.rm = TRUE),
   ) |>
   filter(result != 'QB kneel') |>
@@ -26,10 +26,10 @@ drive_ratios <- pbp |>
     end_ratio = mean(result == 'End of half'),
     penalties = mean(penalties > 0)
   ) |>
-  arrange(td_ratio) |>
+  arrange(-td_ratio) |>
   print(n = 32)
 
-order <- drive_ratios |> pull("team")
+order <- drpenaltiesorder <- drive_ratios |> pull("team")
 
 
 
@@ -71,7 +71,6 @@ p<- ggplot(drive_ratios_long, aes(x = ratio, y = team, fill = result_type)) +
     axis.text.y.left = nflplotR::element_nfl_logo(size = 0.8),
   )
 
-p
 p
 
 ggsave(filename="redzone.png", plot = p)

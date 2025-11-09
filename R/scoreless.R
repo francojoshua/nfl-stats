@@ -1,7 +1,7 @@
 pbp |>
   filter(down %in% 1:4 & !is.na(epa)) |>
   filter(game_half != 'Overtime') |>
-  group_by(game_id, game_half, team = defteam) |>
+  group_by(game_id, qtr, team = defteam) |>
   summarize(
     n = n(),
     touchdown = sum(touchdown & td_team == posteam, na.rm = TRUE),
